@@ -6,6 +6,7 @@
  Data used are all strings, including text and numerical data. 
  Arduino should use "Serial.print" instead of "Serial.write" to send integers as strings and text strings as text strings. 
  The Flash client should send all data in the form of strings as well, including numbers. 
+ This network bridge is just a echo program. All logic should be on client side.
  
  Note: Serial port names set to Macintosh. Need to rename for Windows.
  */
@@ -20,7 +21,7 @@ Serial[] serialPorts = new Serial[NUM_ARDUINOS];
 Server myServer;
 
 //for incoming serial data
-String serial_string, client_string;
+String serial_string = "", client_string = "", client_displayed_string = "";
 
 //ASCII codes
 int CR = 13;  // ASCII return   == 13 //
@@ -66,11 +67,11 @@ void draw()
         // frame.setLocation(100, 100); //change to (-1000, -1000) to hide it
 
         text("From Arduino: " + serial_string, 20, 200);
-        text("From client: " + client_string, 20, 300);
+        text("From client: " + client_displayed_string, 20, 300);
 
         listen_to_client();
 
-        process_client_wishes();
+        translate_client_for_arduino();
 }
 
 void serialEvent(Serial mySerialPort) { //triggers whenever a serialPort message is received
@@ -111,18 +112,54 @@ void listen_to_client() {
                                 my_buffer = my_buffer.trim();
                                 if (my_buffer.length()>0) {
                                         client_string = my_buffer;
+                                        client_displayed_string = client_string;
                                 }
                         }
                 }
         }
 }
 
-void process_client_wishes() {
+void translate_client_for_arduino() {
         if (client_string.length() > 0) {
                 if (client_string.equals("open_drawer")) {
-                        serialPorts[3].write(1);
+                        
+                        serialPorts[3].write('1');
+                        client_string = ""; //to stop sending over and over again
+                        
                 } else if (client_string.equals("close_drawer")) {
-                        serialPorts[3].write(2);
+                        
+                        serialPorts[3].write('2');
+                        client_string = "";
+                        
+                } else if (client_string.equals("light_effect_1")) {
+                        
+                        serialPorts[2].write('1');
+                        client_string = "";
+                        
+                } else if (client_string.equals("light_effect_2")) {
+                        
+                        serialPorts[2].write('2');
+                        client_string = "";
+                        
+                } else if (client_string.equals("light_effect_3")) {
+                        
+                        serialPorts[2].write('3');
+                        client_string = "";
+                        
+                } else if (client_string.equals("light_effect_4")) { //turn off motors and lights
+                        
+                        serialPorts[2].write('0');
+                        serialPorts[4].write('q');
+                        serialPorts[4].write('w');
+                        client_string = "";
+                        
+                } else if (client_string.equals("spin_motors")) {
+                        
+                        serialPorts[4].write('o');
+                        serialPorts[4].write('p');
+                        serialPorts[4].write('7');
+                        serialPorts[4].write('8');
+                        client_string = "";
                 }
         }
 }
