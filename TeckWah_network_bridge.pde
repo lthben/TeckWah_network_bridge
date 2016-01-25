@@ -8,14 +8,14 @@
  The Flash client should send all data in the form of strings as well, including numbers. 
  This network bridge is just a echo program. All logic should be on client side.
  
- Last updated: 23 Jan 2016
+ Last updated: 26 Jan 2016
  */
 
 import processing.net.*;
 import processing.serial.*;
 
 //USER DEFINED SETTINGS
-final int NUM_ARDUINOS = 2; 
+final int NUM_ARDUINOS = 3; 
 OS this_OS = OS.MACOSX; //see other tab for enum def
 boolean DEBUG = true; 
 /*!!!IMPORTANT - define the comports according to the order in the settings.txt file in the other tab*/
@@ -69,10 +69,11 @@ void draw()
         // frame.setLocation(100, 100); //change to (-1000, -1000) to hide it
 
         display_text();
+        
+        //the arduino string is obtained in serialEvent()
+        //process_arduino_string() is also called in serialEvent()
 
-        get_client_string(); //the arduino string is obtained in serialEvent()
-
-        translate_client_for_arduino();
+        clientEvent(); 
 }
 
 void serialEvent(Serial mySerialPort) { //triggers whenever a serialPort message is received
@@ -102,13 +103,21 @@ void serialEvent(Serial mySerialPort) { //triggers whenever a serialPort message
 }
 
 void process_arduino_string(String the_string) {
-
-        if (the_string.equals("touch1_detected")) serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('0'); //refer to command list in the respective Arduino sketches
+        
+        //refer to command list in the respective Arduino sketches for what byte 0-255 to write
+        
+        if (the_string.equals("touch1_detected")) serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('0'); 
         else if (the_string.equals("touch1_released")) serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('1');
-        //else if (the_string.equals("touch1_activated"))
+//        else if (the_string.equals("touch1_activated"))
+        else if (the_string.equals("1tag_1")) serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('4');
+        else if (the_string.equals("1tag_2")) serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('5');
+        else if (the_string.equals("1tag_3")) serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('6');
+        else if (the_string.equals("1tag_4")) serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('7');
+        else if (the_string.equals("1no_tag")) serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('8');
+        
 }
 
-void get_client_string() {
+void clientEvent() {
 
         Client thisClient = myServer.available();   
 
@@ -127,13 +136,15 @@ void get_client_string() {
                                 if (my_buffer.length()>0) {
 
                                         from_client_string = my_buffer;
+                                        
+                                        process_client_string();
                                 }
                         }
                 }
         }
 }
 
-void translate_client_for_arduino() {
+void process_client_string() {
 
         if (from_client_string.length() > 0) {
 
@@ -154,7 +165,7 @@ void translate_client_for_arduino() {
                         serialPorts[2].write('3');
                 } else if (from_client_string.equals("light_effect_4")) { //turn off motors and lights
 
-                                serialPorts[2].write('0');
+                        serialPorts[2].write('0');
                         serialPorts[4].write('q');
                         serialPorts[4].write('w');
                 } else if (from_client_string.equals("spin_motors")) {
