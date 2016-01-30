@@ -176,17 +176,17 @@ void process_client_string() {
         if (from_client_string.length() > 0) {
 
                 if (from_client_string.equals("light1_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('m'); //turn on panel 1
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('g'); //turn on panel 1
                 } else if (from_client_string.equals("light1_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('n'); //turn off panel 1
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('h'); //turn off panel 1
                 } else if (from_client_string.equals("light2_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('o'); //turn on panel 1
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('i'); //turn on panel 2
                 } else if (from_client_string.equals("light2_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('p'); //turn off panel 1
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('j'); //turn off panel 2
                 } else if (from_client_string.equals("light3_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('q'); //turn on panel 1
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('k'); //turn on panel 3
                 } else if (from_client_string.equals("light3_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('r'); //turn off panel 1
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('l'); //turn off panel 3
                 } else if (from_client_string.equals("light4a_on")) { 
                         serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('1'); //long trail forward animation    
                         activate_steppers(1); //cw rotation
@@ -194,17 +194,17 @@ void process_client_string() {
                         serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('2'); //long trail reverse animation
                         activate_steppers(2); //ccw rotation
                 } else if (from_client_string.equals("light5_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('g'); //turn on display 1
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('m'); //turn on display 1
                 } else if (from_client_string.equals("light5_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('h'); //turn off display 1
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('n'); //turn off display 1
                 } else if (from_client_string.equals("light6_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('i'); //turn on display 2
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('o'); //turn on display 2
                 } else if (from_client_string.equals("light6_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('j'); //turn off display 2
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('p'); //turn off display 2
                 } else if (from_client_string.equals("light7_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('k'); //turn on display 3
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('q'); //turn on display 3
                 } else if (from_client_string.equals("light7_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('l'); //turn off display 3
+                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('r'); //turn off display 3
                 } else if (from_client_string.equals("light8_on")) {
                         serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('u'); //turn on map2 (single pixels)
                 } else if (from_client_string.equals("light8_off")) {
