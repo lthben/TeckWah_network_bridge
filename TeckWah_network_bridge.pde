@@ -1,5 +1,5 @@
 /*
- Author: Benjamin Low (benjamin.low@digimagic.com.sg)
+ Author: Benjamin Low(benjamin.low@digimagic.com.sg)
  
  Description: 
  Bridge program for Teck Wah for communicating between Flash and the USB networked Arduinos. 
@@ -8,7 +8,7 @@
  The Flash client should send all data in the form of strings as well, including numbers. 
  This network bridge is just a echo program. All logic should be on client side.
  
- Last updated: 30 Jan 2016
+ Last updated: 4 Feb 2016
  */
 
 import processing.net.*;
@@ -16,7 +16,7 @@ import processing.serial.*;
 
 //USER DEFINED SETTINGS
 final int NUM_ARDUINOS = 11; 
-OS this_OS = OS.MACOSX; //see other tab for enum def
+OS this_OS = OS.WINDOWS; //see other tab for enum def
 boolean DEBUG = true; //to see print statements in the Processing IDE console
 /*!!!IMPORTANT - define the comports according to the order in the settings.txt file in the other tab*/
 
@@ -30,8 +30,9 @@ String from_client_string = "", from_arduino_string = "", from_client_string_dis
 String[] comport_numbers;
 
 //ASCII codes
-int CR = 13;  // ASCII return   == 13 //
-int LF = 10;  // ASCII linefeed == 10 //
+int CR = 13;  // ASCII return   == 13 
+int LF = 10;  // ASCII linefeed == 10 
+int pipe_char = 124; // ASCII for pipe char |
 
 boolean isDrawerOpen, isDisplayOpen; //keep track of the states of the two linear actuators
 
@@ -39,249 +40,251 @@ long sequence_activated_time; //to help make sure the sequence is only activated
 
 void setup() {
 
-        size(400, 100);
+  size(400, 100);
 
-        textSize(16);
+  textSize(16);
 
-        if (DEBUG) {
-                println("this OS: " + this_OS);
-                println("Available serial ports: ");
-                printArray(Serial.list());
-        }
+  if (DEBUG) {
+    println("this OS: " + this_OS);
+    println("Available serial ports: ");
+    printArray(Serial.list());
+  }
 
-        String[] textlines;
+  String[] textlines;
 
-        serialPorts = new Serial[NUM_ARDUINOS];
+  serialPorts = new Serial[NUM_ARDUINOS];
 
-        if (this_OS == OS.WINDOWS)  textlines = loadStrings("windows_settings.txt"); 
-        else textlines = loadStrings("macosx_settings.txt"); 
+  if (this_OS == OS.WINDOWS)  textlines = loadStrings("windows_settings.txt"); 
+  else textlines = loadStrings("macosx_settings.txt"); 
 
-        comport_numbers = new String[NUM_ARDUINOS+1]; //additional number is for server port
+  comport_numbers = new String[NUM_ARDUINOS+1]; //additional number is for server port
 
-        for (int i=0; i<NUM_ARDUINOS+1; i++) {
+  for (int i=0; i<NUM_ARDUINOS+1; i++) {
 
-                String[] a_number = split(textlines[i], '=');
-                comport_numbers[i] = a_number[1];
+    String[] a_number = split(textlines[i], '=');
+    comport_numbers[i] = a_number[1];
 
-                if (i<NUM_ARDUINOS) { //serial ports
+    if (i<NUM_ARDUINOS) { //serial ports
 
-                        if (this_OS == OS.MACOSX) serialPorts[i] = new Serial(this, "/dev/cu.usbmodem" + a_number[1], BAUDRATE); 
-                        else if (this_OS == OS.WINDOWS) serialPorts[i] = new Serial(this, "COM" + a_number[1], BAUDRATE);
-                } else { //server port
-                        myServer = new Server(this, int(a_number[1]));
-                }
-        }
+      if (this_OS == OS.MACOSX) serialPorts[i] = new Serial(this, "/dev/cu.usbmodem" + a_number[1], BAUDRATE); 
+      else if (this_OS == OS.WINDOWS) serialPorts[i] = new Serial(this, "COM" + a_number[1], BAUDRATE);
+    } else { //server port
+      myServer = new Server(this, int(a_number[1]));
+    }}
 } 
 
 
 void draw() 
 {
-        background(0);
+  background(0);
 
-        // frame.setLocation(100, 100); //change to (-1000, -1000) to hide it
+  // frame.setLocation(100, 100); //change to (-1000, -1000) to hide it
 
-        text("Server from arduino: " + from_arduino_string_display, 5, 33); 
-        text("Server to arduino: " + from_client_string_display, 5, 66);
+  text("Server from arduino: " + from_arduino_string_display, 5, 33); 
+  text("Server to arduino: " + from_client_string_display, 5, 66);
 
-        //the arduino string is obtained in serialEvent()
-        //process_arduino_string() is also called in serialEvent()
+  //the arduino string is obtained in serialEvent()
+  //process_arduino_string() is also called in serialEvent()
 
-        clientEvent();
+  clientEvent();
 }
 
 void serialEvent(Serial mySerialPort) { //triggers whenever a serialPort message is received
 
-        String my_buffer = "";
-        int my_port_index = 99;
+  String my_buffer = "";
+  int my_port_index = 99;
 
-        for (int port_index=0; port_index<NUM_ARDUINOS; port_index++) {
-                if (mySerialPort == serialPorts[port_index]) {
-                        my_port_index = port_index;
-                }
-        }
+  for (int port_index=0; port_index<NUM_ARDUINOS; port_index++) {
+    if (mySerialPort == serialPorts[port_index]) {
+      my_port_index = port_index;
+    }
+  }
 
-        my_buffer = mySerialPort.readStringUntil(CR);
+  my_buffer = mySerialPort.readStringUntil(CR);
 
-        if (my_buffer != null) {
+  if (my_buffer != null) {
 
-                my_buffer = trim(my_buffer); 
+    my_buffer = trim(my_buffer); 
 
-                if (my_buffer.length() > 0 ) {
+    if (my_buffer.length() > 0 ) {
 
-                        if (DEBUG) println("port: " + my_port_index + '\t' + "message: " + my_buffer);
+      if (DEBUG) println("port: " + my_port_index + '\t' + "message: " + my_buffer);
 
-                        from_arduino_string = my_buffer;
+      from_arduino_string = my_buffer;
 
-                        myServer.write(from_arduino_string); //automatically echo from serial to server port
+      myServer.write(from_arduino_string); //automatically echo from serial to server port
 
-                        process_arduino_string(from_arduino_string);
-                }
-        }
+      process_arduino_string(from_arduino_string);
+    }
+  }
 }
 
 void process_arduino_string(String the_string) {       
-        //refer to command list in the respective Arduino sketches for what char to write
+  //refer to command list in the respective Arduino sketches for what char to write
 
-        if (from_arduino_string.length() > 0) {
+  if (from_arduino_string.length() > 0) {
 
-                if (the_string.equals("touch1_detected")) { //button1
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('0');
-                } else if (the_string.equals("touch1_released")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('1');
-                } else if (the_string.equals("touch2_detected")) { //button2
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('2');
-                } else if (the_string.equals("touch2_released")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('3');
-                } else if (the_string.equals("1tag_1")) { //ring1
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('4');
-                } else if (the_string.equals("1tag_2")) {
-                        if (DEBUG) println("1tag_2 light");
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('5');
-                } else if (the_string.equals("1tag_3")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('6');
-                } else if (the_string.equals("1tag_4")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('7');
-                } else if (the_string.equals("1no_tag") && isDrawerOpen) {
-                        if (DEBUG) println("1no_tag light");
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('8');
-                } else if (the_string.equals("2tag_1")) { //ring2
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('a');
-                } else if (the_string.equals("2tag_2")) {
-                        if (DEBUG) println("2tag2 light");
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('b');
-                } else if (the_string.equals("2tag_3")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('c');
-                } else if (the_string.equals("2tag_4")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('d');
-                } else if (the_string.equals("2no_tag") && isDrawerOpen) {
-                        if (DEBUG) println("2no_tag light");
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('e');
-                }
-        }
+    if (the_string.equals("touch1_detected")) { //button1
+      serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('0');
+    } else if (the_string.equals("touch1_released")) {
+      serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('1');
+    } else if (the_string.equals("touch2_detected")) { //button2
+      serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('2');
+    } else if (the_string.equals("touch2_released")) {
+      serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('3');
+    } else if (the_string.equals("1tag_1")) { //ring1
+      serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('4');
+      //                } else if (the_string.equals("1tag_2")) {
+      //                        if (DEBUG) println("1tag_2 light");
+      //                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('5');
+      //                } else if (the_string.equals("1tag_3")) {
+      //                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('6');
+      //                } else if (the_string.equals("1tag_4")) {
+      //                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('7');
+    } else if (the_string.equals("1no_tag") && isDrawerOpen) {
+      if (DEBUG) println("1no_tag light");
+      serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('8');
+      //                } else if (the_string.equals("2tag_1")) { //ring2
+      //                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('a');
+    } else if (the_string.equals("2tag_2")) {
+      if (DEBUG) println("2tag2 light");
+      serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('b');
+    } else if (the_string.equals("2tag_3")) {
+      serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('c');
+    } else if (the_string.equals("2tag_4")) {
+      serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('d');
+    } else if (the_string.equals("2no_tag") && isDrawerOpen) {
+      if (DEBUG) println("2no_tag light");
+      serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('e');
+    }
+  }
 
-        from_arduino_string_display = from_arduino_string;
-        from_arduino_string = "";
+  from_arduino_string_display = from_arduino_string;
+  from_arduino_string = "";
 }
 
 
 void clientEvent() {
 
-        Client thisClient = myServer.available(); 
+  Client thisClient = myServer.available(); 
 
-        String my_buffer = "";
+  String my_buffer = "";
 
-        if (thisClient != null) {
+  if (thisClient != null) {
 
-                if (thisClient.available() > 0) 
-                {           
-                        my_buffer = thisClient.readString();      
+    if (thisClient.available() > 0) 
+    {           
+      my_buffer = thisClient.readStringUntil(pipe_char);      
 
-                        if (my_buffer != null) {
+      if (my_buffer != null) {
 
-                                my_buffer = my_buffer.trim();
+        my_buffer = my_buffer.trim();
 
-                                if (my_buffer.length()>0) {
+        if (my_buffer.length()>0) {
 
-                                        from_client_string = my_buffer;
+          int string_len = my_buffer.length();
 
-                                        process_client_string();
-                                }
-                        }
-                }
+          from_client_string = my_buffer.substring(0, string_len - 1); //remove the delimiter char
+
+          process_client_string();
         }
+      }
+    }
+  }
 }
 
-void process_client_string() {
-        //refer to command list in the respective Arduino sketches for what char to write
+  void process_client_string() {
+    //refer to command list in the respective Arduino sketches for what char to write
 
+    if (DEBUG) println(from_client_string);
 
-        if (from_client_string.length() > 0) {
+    if (from_client_string.length() > 0) {
 
-                if (from_client_string.equals("light1_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('g'); //turn on panel 1
-                } else if (from_client_string.equals("light1_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('h'); //turn off panel 1
-                } else if (from_client_string.equals("light2_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('i'); //turn on panel 2
-                } else if (from_client_string.equals("light2_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('j'); //turn off panel 2
-                } else if (from_client_string.equals("light3_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('k'); //turn on panel 3
-                } else if (from_client_string.equals("light3_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('l'); //turn off panel 3
-                } else if (from_client_string.equals("light4a_on")) { 
-                        if (millis() - sequence_activated_time > 16000) {
-                                serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('1'); //long trail forward animation    
-                                activate_steppers(1); //cw rotation
-                                sequence_activated_time = millis();
-                        }
-                } else if (from_client_string.equals("light4b_on")) {
-                        if (millis() - sequence_activated_time > 16000) {
-                                serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('2'); //long trail reverse animation
-                                activate_steppers(2); //ccw rotation
-                                sequence_activated_time = millis();
-                        }
-                } else if (from_client_string.equals("light5_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('m'); //turn on display 1
-                } else if (from_client_string.equals("light5_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('n'); //turn off display 1
-                } else if (from_client_string.equals("light6_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('o'); //turn on display 2
-                } else if (from_client_string.equals("light6_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('p'); //turn off display 2
-                } else if (from_client_string.equals("light7_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('q'); //turn on display 3
-                } else if (from_client_string.equals("light7_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('r'); //turn off display 3
-                } else if (from_client_string.equals("light8_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('u'); //turn on map2 (single pixels)
-                } else if (from_client_string.equals("light8_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('v'); //turn off map2
-                } else if (from_client_string.equals("light9_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('s'); //turn on map1 (world map)
-                } else if (from_client_string.equals("light9_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('t'); //turn off map1
-                } else if (from_client_string.equals("light10_on")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('3'); //turn on achievement
-                } else if (from_client_string.equals("light10_off")) {
-                        serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('4'); //turn off achievement
-                } else if (from_client_string.equals("drawer_close")) {
-                        isDrawerOpen =false;
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('9'); //turn off ring1
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('f'); //turn off ring2
-                        serialPorts[serialPortIndex.LINEAR_ACT_1_COMPORT.ordinal()].write('0'); //retract actuator
-                } else if (from_client_string.equals("drawer_open")) {
-                        isDrawerOpen = true;
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('8'); //waiting mode for ring1
-                        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('e'); //waiting mode for ring2
-                        serialPorts[serialPortIndex.LINEAR_ACT_1_COMPORT.ordinal()].write('1'); //extend actuator
-                } else if (from_client_string.equals("display_close")) {
-                        isDisplayOpen = false;
-                        serialPorts[serialPortIndex.LINEAR_ACT_2_COMPORT.ordinal()].write('0'); //retract actuator
-                } else if (from_client_string.equals("display_open")) {
-                        isDisplayOpen = true;
-                        serialPorts[serialPortIndex.LINEAR_ACT_2_COMPORT.ordinal()].write('1'); //extend actuator
-                } else if (from_client_string.equals("drawer stop")) {
-                        serialPorts[serialPortIndex.LINEAR_ACT_1_COMPORT.ordinal()].write('2'); //stop the drawer at any position
-                } else if (from_client_string.equals("display stop")) {
-                        serialPorts[serialPortIndex.LINEAR_ACT_2_COMPORT.ordinal()].write('2'); //stop the display at any position
-                }
-
-                from_client_string_display = from_client_string;
-                from_client_string = ""; //reset the string
+      if (from_client_string.equals("light1_on")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('g'); //turn on panel 1
+      } else if (from_client_string.equals("light1_off")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('h'); //turn off panel 1
+      } else if (from_client_string.equals("light2_on")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('i'); //turn on panel 2
+      } else if (from_client_string.equals("light2_off")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('j'); //turn off panel 2
+      } else if (from_client_string.equals("light3_on")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('k'); //turn on panel 3
+      } else if (from_client_string.equals("light3_off")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('l'); //turn off panel 3
+      } else if (from_client_string.equals("light4a_on")) { 
+        if (millis() - sequence_activated_time > 16000) {
+          serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('1'); //long trail forward animation    
+          activate_steppers(1); //cw rotation
+          sequence_activated_time = millis();
         }
-}
-
-void activate_steppers(int dir) {
-
-        if (dir == 1) {
-                serialPorts[serialPortIndex.STEPPER_1_COMPORT.ordinal()].write('1'); //cw rotation
-                serialPorts[serialPortIndex.STEPPER_2_COMPORT.ordinal()].write('1');
-                serialPorts[serialPortIndex.STEPPER_3_COMPORT.ordinal()].write('1');
-        } else if (dir == 2) {
-                serialPorts[serialPortIndex.STEPPER_1_COMPORT.ordinal()].write('2'); //ccw rotation
-                serialPorts[serialPortIndex.STEPPER_2_COMPORT.ordinal()].write('2');
-                serialPorts[serialPortIndex.STEPPER_3_COMPORT.ordinal()].write('2');
+      } else if (from_client_string.equals("light4b_on")) {
+        if (millis() - sequence_activated_time > 16000) {
+          serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('2'); //long trail reverse animation
+          activate_steppers(2); //ccw rotation
+          sequence_activated_time = millis();
         }
-}
+      } else if (from_client_string.equals("light5_on")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('m'); //turn on display 1
+      } else if (from_client_string.equals("light5_off")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('n'); //turn off display 1
+      } else if (from_client_string.equals("light6_on")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('o'); //turn on display 2
+      } else if (from_client_string.equals("light6_off")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('p'); //turn off display 2
+      } else if (from_client_string.equals("light7_on")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('q'); //turn on display 3
+      } else if (from_client_string.equals("light7_off")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('r'); //turn off display 3
+      } else if (from_client_string.equals("light8_on")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('u'); //turn on map2 (single pixels)
+      } else if (from_client_string.equals("light8_off")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('v'); //turn off map2
+      } else if (from_client_string.equals("light9_on")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('s'); //turn on map1 (world map)
+      } else if (from_client_string.equals("light9_off")) {
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('t'); //turn off map1
+      } else if (from_client_string.equals("light10_on")) {
+        serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('3'); //turn on achievement
+      } else if (from_client_string.equals("light10_off")) {
+        serialPorts[serialPortIndex.NEOPIXEL_1_COMPORT.ordinal()].write('4'); //turn off achievement
+      } else if (from_client_string.equals("drawer_close")) {
+        isDrawerOpen =false;
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('9'); //turn off ring1
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('f'); //turn off ring2
+        serialPorts[serialPortIndex.LINEAR_ACT_1_COMPORT.ordinal()].write('0'); //retract actuator
+      } else if (from_client_string.equals("drawer_open")) {
+        isDrawerOpen = true;
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('8'); //waiting mode for ring1
+        serialPorts[serialPortIndex.NEOPIXEL_2_COMPORT.ordinal()].write('e'); //waiting mode for ring2
+        serialPorts[serialPortIndex.LINEAR_ACT_1_COMPORT.ordinal()].write('1'); //extend actuator
+      } else if (from_client_string.equals("display_close")) {
+        isDisplayOpen = false;
+        serialPorts[serialPortIndex.LINEAR_ACT_2_COMPORT.ordinal()].write('0'); //retract actuator
+      } else if (from_client_string.equals("display_open")) {
+        isDisplayOpen = true;
+        serialPorts[serialPortIndex.LINEAR_ACT_2_COMPORT.ordinal()].write('1'); //extend actuator
+      } else if (from_client_string.equals("drawer stop")) {
+        serialPorts[serialPortIndex.LINEAR_ACT_1_COMPORT.ordinal()].write('2'); //stop the drawer at any position
+      } else if (from_client_string.equals("display stop")) {
+        serialPorts[serialPortIndex.LINEAR_ACT_2_COMPORT.ordinal()].write('2'); //stop the display at any position
+      }
+
+      from_client_string_display = from_client_string;
+      from_client_string = ""; //reset the string
+    }
+  }
+
+  void activate_steppers(int dir) {
+
+    if (dir == 1) {
+      serialPorts[serialPortIndex.STEPPER_1_COMPORT.ordinal()].write('1'); //cw rotation
+      serialPorts[serialPortIndex.STEPPER_2_COMPORT.ordinal()].write('1');
+      serialPorts[serialPortIndex.STEPPER_3_COMPORT.ordinal()].write('1');
+    } else if (dir == 2) {
+      serialPorts[serialPortIndex.STEPPER_1_COMPORT.ordinal()].write('2'); //ccw rotation
+      serialPorts[serialPortIndex.STEPPER_2_COMPORT.ordinal()].write('2');
+      serialPorts[serialPortIndex.STEPPER_3_COMPORT.ordinal()].write('2');
+    }
+  }
 
